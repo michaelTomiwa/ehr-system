@@ -1,8 +1,7 @@
 # Secure Cloud-Based EHR System with RBAC
-## University of the West of Scotland — MSc Computer Science
 
-### Project Title
-Design and Implementation of a Secure Cloud-Based Electronic Health Record (EHR) System using Role-Based Access Control
+### Project Overview
+Secure cloud-based electronic health record application with role-based access control.
 
 ---
 
@@ -166,4 +165,3 @@ ehr-system/
 - **Security Tests:** 12/12 PASS (100%)
 - **RBAC Enforcement Rate:** 100%
 - **Overall:** 30/30 test cases passed
-
