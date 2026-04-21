@@ -12,6 +12,7 @@
     ]
   },
   "deploy": {
+    "startCommand": "npm run bootstrap:start",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 300,
     "numReplicas": 1,
