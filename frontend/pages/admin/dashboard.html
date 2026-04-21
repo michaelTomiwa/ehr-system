@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — SecureEHR</title>
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="dashboard-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="logo-icon">🏥</div>
+        <div class="sidebar-logo-text"><h2>SecureEHR</h2><p>Admin Panel</p></div>
+      </div>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar"></div>
+      <div class="sidebar-user-info">
+        <div class="name sidebar-user-name"></div>
+        <div class="role sidebar-user-role"></div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Main</div>
+      <div class="nav-item active" data-page="dashboard" onclick="showSection('dashboard')"><span class="icon">📊</span> Dashboard</div>
+      <div class="nav-section-title">Management</div>
+      <div class="nav-item" data-page="users" onclick="showSection('users')"><span class="icon">👥</span> User Management</div>
+      <div class="nav-item" data-page="records" onclick="showSection('records')"><span class="icon">📋</span> All Records</div>
+      <div class="nav-section-title">Security</div>
+      <div class="nav-item" data-page="audit" onclick="showSection('audit')"><span class="icon">🔍</span> Audit Logs</div>
+      <div class="nav-item" data-page="roles" onclick="showSection('roles')"><span class="icon">🛡️</span> Roles & Permissions</div>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="logout()"><span>🚪</span> Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title"><h1 id="section-title">Dashboard</h1><p id="section-subtitle">System overview and statistics</p></div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span class="badge badge-admin">Administrator</span>
+        <span class="topbar-user-name" style="font-weight:600; font-size:13px;"></span>
+      </div>
+    </div>
+
+    <div class="page-content">
+
+      <!-- DASHBOARD SECTION -->
+      <section id="sec-dashboard">
+        <div class="stats-grid" id="stats-grid">
+          <div class="page-loader"><div class="spinner"></div></div>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+          <div class="card">
+            <div class="card-header"><div><h3>Recent Logins</h3><p>Last 5 system logins</p></div></div>
+            <div id="recent-logins"><div class="page-loader"><div class="spinner"></div></div></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div><h3>Access Statistics</h3><p>RBAC enforcement summary</p></div></div>
+            <div id="access-stats"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- USERS SECTION -->
+      <section id="sec-users" style="display:none;">
+        <div class="card">
+          <div class="card-header">
+            <div><h3>User Management</h3><p>Create and manage system users</p></div>
+            <button class="btn btn-primary btn-sm" onclick="openCreateUserModal()">+ Add User</button>
+          </div>
+          <div class="search-bar">
+            <input type="text" id="user-search" placeholder="Search users by name or email..." oninput="filterUsers()">
+            <select id="role-filter" onchange="filterUsers()" style="padding:9px 14px; border:1.5px solid #d1d5db; border-radius:8px; font-size:13px;">
+              <option value="">All Roles</option>
+              <option value="admin">Admin</option>
+              <option value="clinician">Clinician</option>
+              <option value="patient">Patient</option>
+            </select>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Created</th><th>Last Login</th><th>Actions</th></tr></thead>
+              <tbody id="users-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ALL RECORDS SECTION -->
+      <section id="sec-records" style="display:none;">
+        <div class="card">
+          <div class="card-header"><div><h3>All Medical Records</h3><p>System-wide patient health records</p></div></div>
+          <div class="table-container">
+            <table>
+              <thead><tr><th>Patient</th><th>Clinician</th><th>Visit Date</th><th>Diagnosis</th><th>Medications</th><th>Created</th></tr></thead>
+              <tbody id="records-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- AUDIT LOGS SECTION -->
+      <section id="sec-audit" style="display:none;">
+        <div class="card">
+          <div class="card-header">
+            <div><h3>Audit Logs</h3><p>Complete system activity trail for accountability</p></div>
+            <select id="audit-filter" onchange="loadAuditLogs()" style="padding:9px 14px; border:1.5px solid #d1d5db; border-radius:8px; font-size:13px;">
+              <option value="">All Events</option>
+              <option value="GRANTED">Access Granted</option>
+              <option value="DENIED">Access Denied</option>
+            </select>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead><tr><th>Time</th><th>User</th><th>Role</th><th>Action</th><th>Resource</th><th>Method</th><th>Status</th><th>IP Address</th></tr></thead>
+              <tbody id="audit-table-body"></tbody>
+            </table>
+          </div>
+          <div style="margin-top:16px; display:flex; justify-content:center; gap:8px;" id="audit-pagination"></div>
+        </div>
+      </section>
+
+      <!-- ROLES & PERMISSIONS SECTION -->
+      <section id="sec-roles" style="display:none;">
+        <div id="roles-container"></div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- Create/Edit User Modal -->
+<div id="user-modal" class="modal-overlay" style="display:none;">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="user-modal-title">Create New User</h3>
+      <button class="modal-close" onclick="closeModal('user-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="user-form-alert" style="display:none;"></div>
+      <div class="form-grid">
+        <div class="form-group"><label>Full Name</label><input type="text" id="u-name" placeholder="e.g. Dr. John Smith" required></div>
+        <div class="form-group"><label>Email Address</label><input type="email" id="u-email" placeholder="user@example.com" required></div>
+        <div class="form-group"><label>Password</label><input type="password" id="u-password" placeholder="Min 8 characters"></div>
+        <div class="form-group"><label>Role</label>
+          <select id="u-role">
+            <option value="patient">Patient</option>
+            <option value="clinician">Clinician</option>
+            <option value="admin">Administrator</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('user-modal')">Cancel</button>
+      <button class="btn btn-primary" id="user-modal-save" onclick="saveUser()">Create User</button>
+    </div>
+  </div>
+</div>
+
+<script src="/assets/js/app.js"></script>
+<script>
+  let allUsers = [];
+  let currentEditingUserId = null;
+  let auditPage = 1;
+
+  if (!requireAuth(['admin'])) throw new Error('auth');
+  initSidebar('dashboard');
+
+  function showSection(name) {
+    ['dashboard','users','records','audit','roles'].forEach(s => {
+      document.getElementById(`sec-${s}`).style.display = s === name ? 'block' : 'none';
+    });
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.page === name));
+
+    const titles = {
+      dashboard: ['Dashboard', 'System overview and statistics'],
+      users: ['User Management', 'Manage system users and their roles'],
+      records: ['Medical Records', 'View all patient health records'],
+      audit: ['Audit Logs', 'Complete system activity trail'],
+      roles: ['Roles & Permissions', 'View RBAC role definitions']
+    };
+    document.getElementById('section-title').textContent = titles[name][0];
+    document.getElementById('section-subtitle').textContent = titles[name][1];
+
+    if (name === 'users') loadUsers();
+    if (name === 'records') loadAllRecords();
+    if (name === 'audit') loadAuditLogs();
+    if (name === 'roles') loadRoles();
+  }
+
+  async function loadDashboard() {
+    const res = await api.get('/admin/dashboard');
+    if (!res || !res.ok) return;
+    const d = res.data.data;
+
+    document.getElementById('stats-grid').innerHTML = `
+      <div class="stat-card"><div class="stat-icon blue">👥</div><div class="stat-info"><div class="value">${d.total_users}</div><div class="label">Total Users</div></div></div>
+      <div class="stat-card"><div class="stat-icon green">🩺</div><div class="stat-info"><div class="value">${d.total_clinicians}</div><div class="label">Clinicians</div></div></div>
+      <div class="stat-card"><div class="stat-icon blue">🏥</div><div class="stat-info"><div class="value">${d.total_patients}</div><div class="label">Patients</div></div></div>
+      <div class="stat-card"><div class="stat-icon green">📋</div><div class="stat-info"><div class="value">${d.total_records}</div><div class="label">Medical Records</div></div></div>
+      <div class="stat-card"><div class="stat-icon yellow">📅</div><div class="stat-info"><div class="value">${d.upcoming_appointments}</div><div class="label">Upcoming Appointments</div></div></div>
+      <div class="stat-card"><div class="stat-icon red">🚫</div><div class="stat-info"><div class="value">${d.total_denied_access}</div><div class="label">Access Denied Events</div></div></div>
+    `;
+
+    const logins = d.recent_logins;
+    document.getElementById('recent-logins').innerHTML = logins.length ? `
+      <div class="table-container"><table>
+        <thead><tr><th>User</th><th>Role</th><th>Time</th></tr></thead>
+        <tbody>${logins.map(l => `<tr><td>${l.user_email||'—'}</td><td>${l.user_role ? roleBadge(l.user_role) : '—'}</td><td>${formatDateTime(l.timestamp)}</td></tr>`).join('')}</tbody>
+      </table></div>` : emptyState('📭','No logins yet','');
+
+    document.getElementById('access-stats').innerHTML = `
+      <div style="padding:10px 0;">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--gray-100);">
+          <span style="font-size:13px; font-weight:500;">Total Administrators</span>
+          <span class="badge badge-admin">${d.total_admins}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--gray-100);">
+          <span style="font-size:13px; font-weight:500;">Total Clinicians</span>
+          <span class="badge badge-clinician">${d.total_clinicians}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--gray-100);">
+          <span style="font-size:13px; font-weight:500;">Total Patients</span>
+          <span class="badge badge-patient">${d.total_patients}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--gray-100);">
+          <span style="font-size:13px; font-weight:500;">Access Denied Events</span>
+          <span class="badge badge-danger">${d.total_denied_access}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0;">
+          <span style="font-size:13px; font-weight:500;">Total Appointments</span>
+          <span class="badge badge-info">${d.total_appointments}</span>
+        </div>
+      </div>`;
+  }
+
+  async function loadUsers() {
+    document.getElementById('users-table-body').innerHTML = '<tr><td colspan="7" style="text-align:center; padding:30px;">Loading...</td></tr>';
+    const res = await api.get('/admin/users');
+    if (!res || !res.ok) return;
+    allUsers = res.data.data;
+    renderUsers(allUsers);
+  }
+
+  function renderUsers(users) {
+    const tbody = document.getElementById('users-table-body');
+    if (!users.length) { tbody.innerHTML = `<tr><td colspan="7">${emptyState('👤','No users found','')}</td></tr>`; return; }
+    tbody.innerHTML = users.map(u => `
+      <tr>
+        <td><strong>${u.name}</strong></td>
+        <td>${u.email}</td>
+        <td>${roleBadge(u.role)}</td>
+        <td>${u.is_active ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-danger">Inactive</span>'}</td>
+        <td>${formatDate(u.created_at)}</td>
+        <td>${u.last_login ? formatDateTime(u.last_login) : '<span style="color:var(--gray-400)">Never</span>'}</td>
+        <td style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button class="btn btn-outline btn-sm" onclick="openEditUser(${u.id})">Edit</button>
+          ${u.is_active ? `<button class="btn btn-danger btn-sm" onclick="deactivateUser(${u.id},'${u.name}')">Deactivate</button>` : ''}
+        </td>
+      </tr>`).join('');
+  }
+
+  function filterUsers() {
+    const q = document.getElementById('user-search').value.toLowerCase();
+    const role = document.getElementById('role-filter').value;
+    renderUsers(allUsers.filter(u =>
+      (u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)) &&
+      (!role || u.role === role)
+    ));
+  }
+
+  function openCreateUserModal() {
+    currentEditingUserId = null;
+    document.getElementById('user-modal-title').textContent = 'Create New User';
+    document.getElementById('user-modal-save').textContent = 'Create User';
+    ['u-name','u-email','u-password'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('u-role').value = 'patient';
+    document.getElementById('u-password').placeholder = 'Min 8 characters (required)';
+    document.getElementById('user-form-alert').style.display = 'none';
+    openModal('user-modal');
+  }
+
+  function openEditUser(userId) {
+    const user = allUsers.find(u => u.id === userId);
+    if (!user) return;
+    currentEditingUserId = userId;
+    document.getElementById('user-modal-title').textContent = 'Edit User';
+    document.getElementById('user-modal-save').textContent = 'Update User';
+    document.getElementById('u-name').value = user.name;
+    document.getElementById('u-email').value = user.email;
+    document.getElementById('u-password').value = '';
+    document.getElementById('u-password').placeholder = 'Leave blank to keep current password';
+    document.getElementById('u-role').value = user.role;
+    document.getElementById('user-form-alert').style.display = 'none';
+    openModal('user-modal');
+  }
+
+  async function saveUser() {
+    const alertDiv = document.getElementById('user-form-alert');
+    const name = document.getElementById('u-name').value.trim();
+    const email = document.getElementById('u-email').value.trim();
+    const password = document.getElementById('u-password').value;
+    const role = document.getElementById('u-role').value;
+
+    if (!name || !email || (!currentEditingUserId && !password)) {
+      alertDiv.className = 'alert alert-error';
+      alertDiv.textContent = 'Please fill in all required fields.';
+      alertDiv.style.display = 'flex';
+      return;
+    }
+
+    let res;
+    if (currentEditingUserId) {
+      res = await api.put(`/admin/users/${currentEditingUserId}`, { name, email, role });
+    } else {
+      res = await api.post('/admin/users', { name, email, password, role });
+    }
+
+    if (res && res.ok) {
+      closeModal('user-modal');
+      showToast(currentEditingUserId ? 'User updated successfully.' : 'User created successfully.', 'success');
+      loadUsers();
+    } else {
+      alertDiv.className = 'alert alert-error';
+      alertDiv.textContent = res?.data?.message || 'Operation failed.';
+      alertDiv.style.display = 'flex';
+    }
+  }
+
+  async function deactivateUser(id, name) {
+    if (!confirm(`Deactivate user "${name}"? They will no longer be able to log in.`)) return;
+    const res = await api.delete(`/admin/users/${id}`);
+    if (res && res.ok) {
+      showToast('User deactivated.', 'success');
+      loadUsers();
+    } else {
+      showToast(res?.data?.message || 'Failed to deactivate.', 'error');
+    }
+  }
+
+  async function loadAllRecords() {
+    document.getElementById('records-table-body').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;">Loading...</td></tr>';
+    const res = await api.get('/admin/all-records');
+    if (!res || !res.ok) return;
+    const records = res.data.data;
+    document.getElementById('records-table-body').innerHTML = records.length ?
+      records.map(r => `<tr>
+        <td><strong>${r.patient_name}</strong><br><span style="color:var(--gray-500); font-size:12px;">${r.patient_email}</span></td>
+        <td>${r.clinician_name}</td>
+        <td>${formatDate(r.visit_date)}</td>
+        <td>${r.diagnosis || '—'}</td>
+        <td style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${r.medications || '—'}</td>
+        <td>${formatDateTime(r.created_at)}</td>
+      </tr>`).join('') :
+      `<tr><td colspan="6">${emptyState('📋','No records','')}</td></tr>`;
+  }
+
+  async function loadAuditLogs() {
+    const filter = document.getElementById('audit-filter').value;
+    document.getElementById('audit-table-body').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;">Loading...</td></tr>';
+    const res = await api.get(`/admin/audit-logs?limit=100&status=${filter}`);
+    if (!res || !res.ok) return;
+    const logs = res.data.data;
+    document.getElementById('audit-table-body').innerHTML = logs.length ?
+      logs.map(l => `<tr>
+        <td style="white-space:nowrap;">${formatDateTime(l.timestamp)}</td>
+        <td>${l.user_email || '<span style="color:var(--gray-400)">Unknown</span>'}</td>
+        <td>${l.user_role ? roleBadge(l.user_role) : '—'}</td>
+        <td><code style="font-size:11px; background:var(--gray-100); padding:2px 6px; border-radius:4px;">${l.action}</code></td>
+        <td style="font-size:12px; color:var(--gray-600); max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${l.resource || '—'}</td>
+        <td><span class="badge badge-gray">${l.method || '—'}</span></td>
+        <td>${l.status === 'GRANTED' ? '<span class="log-status-granted">✅ GRANTED</span>' : '<span class="log-status-denied">❌ DENIED</span>'}</td>
+        <td style="font-size:12px; font-family:monospace;">${l.ip_address || '—'}</td>
+      </tr>`).join('') :
+      `<tr><td colspan="8">${emptyState('📭','No logs','')}</td></tr>`;
+  }
+
+  async function loadRoles() {
+    const res = await api.get('/admin/roles');
+    if (!res || !res.ok) return;
+    const roles = res.data.data;
+    const roleColors = { admin: '#7c3aed', clinician: '#1e40af', patient: '#065f46' };
+    document.getElementById('roles-container').innerHTML = `
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:20px;">
+        ${roles.map(r => `
+          <div class="card">
+            <div class="card-header">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:40px;height:40px;border-radius:10px;background:${roleColors[r.role_name]||'#374151'};display:flex;align-items:center;justify-content:center;font-size:20px;">
+                  ${r.role_name === 'admin' ? '🛡️' : r.role_name === 'clinician' ? '🩺' : '👤'}
+                </div>
+                <div><h3>${r.role_name.charAt(0).toUpperCase()+r.role_name.slice(1)}</h3><p>${r.description}</p></div>
+              </div>
+            </div>
+            <div>
+              <p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--gray-500);margin-bottom:10px;">Permissions (${r.permissions.length})</p>
+              ${r.permissions.map(p => `
+                <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--gray-100);">
+                  <span style="color:var(--secondary);">✓</span>
+                  <div>
+                    <div style="font-size:13px;font-weight:600;">${p.permission_name.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</div>
+                    <div style="font-size:11px;color:var(--gray-500);">${p.description}</div>
+                  </div>
+                </div>`).join('')}
+            </div>
+          </div>`).join('')}
+      </div>`;
+  }
+
+  loadDashboard();
+</script>
+</body>
+</html>

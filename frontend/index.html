@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EHR System — Login | Secure Cloud-Based EHR with RBAC</title>
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="login-page">
+
+  <div class="login-container">
+    <div class="login-header">
+      <div class="logo-icon">🏥</div>
+      <h1>SecureEHR System</h1>
+      <p>Secure Cloud-Based Electronic Health Records</p>
+      <p style="font-size:11px; opacity:0.7; margin-top:4px;">Role-Based Access Control (RBAC)</p>
+    </div>
+
+    <div class="login-body">
+      <div id="login-alert" style="display:none;"></div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="email" placeholder="Enter your email" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="password" placeholder="Enter your password" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-full" id="login-btn">
+          Sign In to EHR System
+        </button>
+      </form>
+
+      <div class="demo-accounts">
+        <h4>Demo Accounts (Password: Password123!)</h4>
+        <div class="demo-account" onclick="fillDemo('admin@ehrsystem.com')">
+          <span class="role-badge badge badge-admin">Admin</span>
+          <span class="email">admin@ehrsystem.com</span>
+          <span style="font-size:11px; color:#9ca3af;">Click to fill</span>
+        </div>
+        <div class="demo-account" onclick="fillDemo('amina.okafor@ehrsystem.com')">
+          <span class="role-badge badge badge-clinician">Clinician</span>
+          <span class="email">amina.okafor@ehrsystem.com</span>
+          <span style="font-size:11px; color:#9ca3af;">Click to fill</span>
+        </div>
+        <div class="demo-account" onclick="fillDemo('james.adeyemi@ehrsystem.com')">
+          <span class="role-badge badge badge-clinician">Clinician</span>
+          <span class="email">james.adeyemi@ehrsystem.com</span>
+          <span style="font-size:11px; color:#9ca3af;">Click to fill</span>
+        </div>
+        <div class="demo-account" onclick="fillDemo('emeka.chukwu@gmail.com')">
+          <span class="role-badge badge badge-patient">Patient</span>
+          <span class="email">emeka.chukwu@gmail.com</span>
+          <span style="font-size:11px; color:#9ca3af;">Click to fill</span>
+        </div>
+        <div class="demo-account" onclick="fillDemo('ngozi.obi@gmail.com')">
+          <span class="role-badge badge badge-patient">Patient</span>
+          <span class="email">ngozi.obi@gmail.com</span>
+          <span style="font-size:11px; color:#9ca3af;">Click to fill</span>
+        </div>
+      </div>
+
+      <p style="text-align:center; font-size:11px; color:var(--gray-500); margin-top:16px;">
+        University of the West of Scotland · MSc Computer Science<br>
+        Design and Implementation of Secure Cloud-Based EHR with RBAC
+      </p>
+    </div>
+  </div>
+
+<script src="/assets/js/app.js"></script>
+<script>
+  // Redirect if already logged in
+  if (isLoggedIn()) {
+    const role = getUser().role;
+    window.location.href = `/pages/${role}/dashboard.html`;
+  }
+
+  function fillDemo(email) {
+    document.getElementById('email').value = email;
+    document.getElementById('password').value = 'Password123!';
+  }
+
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('login-btn');
+    const alertDiv = document.getElementById('login-alert');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading-spinner"></span> Authenticating...';
+    alertDiv.style.display = 'none';
+
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+
+    const result = await api.post('/auth/login', { email, password });
+
+    if (result && result.ok) {
+      localStorage.setItem('ehr_token', result.data.token);
+      localStorage.setItem('ehr_user', JSON.stringify(result.data.user));
+      showToast(`Welcome, ${result.data.user.name}!`, 'success');
+      setTimeout(() => {
+        window.location.href = `/pages/${result.data.user.role}/dashboard.html`;
+      }, 500);
+    } else {
+      const msg = result?.data?.message || 'Login failed. Please check your credentials.';
+      alertDiv.className = 'alert alert-error';
+      alertDiv.innerHTML = `🔒 ${msg}`;
+      alertDiv.style.display = 'flex';
+      btn.disabled = false;
+      btn.innerHTML = 'Sign In to EHR System';
+    }
+  });
+</script>
+</body>
+</html>

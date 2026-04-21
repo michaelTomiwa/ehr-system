@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clinician Dashboard — SecureEHR</title>
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="dashboard-layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="logo-icon">🏥</div>
+        <div class="sidebar-logo-text"><h2>SecureEHR</h2><p>Clinician Panel</p></div>
+      </div>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar"></div>
+      <div class="sidebar-user-info">
+        <div class="name sidebar-user-name"></div>
+        <div class="role sidebar-user-role"></div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Main</div>
+      <div class="nav-item active" data-page="dashboard" onclick="showSection('dashboard')"><span class="icon">📊</span> Dashboard</div>
+      <div class="nav-section-title">Clinical</div>
+      <div class="nav-item" data-page="patients" onclick="showSection('patients')"><span class="icon">👤</span> Patients</div>
+      <div class="nav-item" data-page="records" onclick="showSection('records')"><span class="icon">📋</span> Medical Records</div>
+      <div class="nav-item" data-page="appointments" onclick="showSection('appointments')"><span class="icon">📅</span> Appointments</div>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="logout()"><span>🚪</span> Sign Out</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title"><h1 id="section-title">Dashboard</h1><p id="section-subtitle">Your clinical overview</p></div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span class="badge badge-clinician">Clinician</span>
+        <span class="topbar-user-name" style="font-weight:600; font-size:13px;"></span>
+      </div>
+    </div>
+
+    <div class="page-content">
+
+      <!-- DASHBOARD -->
+      <section id="sec-dashboard">
+        <div class="stats-grid" id="clin-stats"></div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+          <div class="card">
+            <div class="card-header"><div><h3>Recent Patients</h3><p>Patients you recently attended</p></div></div>
+            <div id="recent-patients"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div><h3>Upcoming Appointments</h3></div><button class="btn btn-primary btn-sm" onclick="showSection('appointments')">View All</button></div>
+            <div id="upcoming-appts"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PATIENTS -->
+      <section id="sec-patients" style="display:none;">
+        <div class="card">
+          <div class="card-header"><div><h3>Patient Registry</h3><p>All registered patients</p></div></div>
+          <div class="search-bar">
+            <input type="text" id="patient-search" placeholder="Search by name or email..." oninput="filterPatients()">
+          </div>
+          <div class="table-container">
+            <table>
+              <thead><tr><th>Name</th><th>Email</th><th>DOB</th><th>Gender</th><th>Blood Group</th><th>Phone</th><th>Allergies</th><th>Action</th></tr></thead>
+              <tbody id="patients-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- RECORDS -->
+      <section id="sec-records" style="display:none;">
+        <div class="card">
+          <div class="card-header">
+            <div><h3>Medical Records</h3><p>Records you have created</p></div>
+            <button class="btn btn-primary btn-sm" onclick="openNewRecordModal()">+ New Record</button>
+          </div>
+          <div id="records-list"></div>
+        </div>
+      </section>
+
+      <!-- APPOINTMENTS -->
+      <section id="sec-appointments" style="display:none;">
+        <div class="card">
+          <div class="card-header">
+            <div><h3>Appointments</h3><p>Your scheduled and completed appointments</p></div>
+            <button class="btn btn-primary btn-sm" onclick="openApptModal()">+ New Appointment</button>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead><tr><th>Patient</th><th>Date</th><th>Time</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody id="appts-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- PATIENT DETAIL -->
+      <section id="sec-patient-detail" style="display:none;">
+        <div style="margin-bottom:16px;">
+          <button class="btn btn-secondary btn-sm" onclick="showSection('patients')">← Back to Patients</button>
+        </div>
+        <div id="patient-detail-content"></div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- New Medical Record Modal -->
+<div id="record-modal" class="modal-overlay" style="display:none;">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-header"><h3>New Medical Record</h3><button class="modal-close" onclick="closeModal('record-modal')">✕</button></div>
+    <div class="modal-body">
+      <div id="record-form-alert" style="display:none;"></div>
+      <div class="form-grid">
+        <div class="form-group form-full">
+          <label>Patient</label>
+          <select id="r-patient"><option value="">Select patient...</option></select>
+        </div>
+        <div class="form-group"><label>Visit Date</label><input type="date" id="r-date"></div>
+        <div class="form-group"><label>Chief Complaint</label><input type="text" id="r-complaint" placeholder="Presenting complaint"></div>
+        <div class="form-group form-full"><label>Diagnosis</label><textarea id="r-diagnosis" rows="2" placeholder="Clinical diagnosis"></textarea></div>
+        <div class="form-group form-full"><label>Vital Signs</label><input type="text" id="r-vitals" placeholder="e.g. BP: 120/80, Temp: 37°C, HR: 72bpm, SpO2: 99%"></div>
+        <div class="form-group form-full"><label>Medications Prescribed</label><textarea id="r-medications" rows="2" placeholder="Medications, dosage, and frequency"></textarea></div>
+        <div class="form-group form-full"><label>Treatment Plan</label><textarea id="r-treatment" rows="2" placeholder="Management and treatment plan"></textarea></div>
+        <div class="form-group form-full"><label>Lab Results</label><textarea id="r-labs" rows="2" placeholder="Laboratory and investigation results"></textarea></div>
+        <div class="form-group form-full"><label>Clinical Notes</label><textarea id="r-notes" rows="2" placeholder="Additional notes"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('record-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveRecord()">Save Record</button>
+    </div>
+  </div>
+</div>
+
+<!-- New Appointment Modal -->
+<div id="appt-modal" class="modal-overlay" style="display:none;">
+  <div class="modal">
+    <div class="modal-header"><h3>Schedule Appointment</h3><button class="modal-close" onclick="closeModal('appt-modal')">✕</button></div>
+    <div class="modal-body">
+      <div id="appt-form-alert" style="display:none;"></div>
+      <div class="form-grid">
+        <div class="form-group form-full"><label>Patient</label><select id="a-patient"><option value="">Select patient...</option></select></div>
+        <div class="form-group"><label>Date</label><input type="date" id="a-date"></div>
+        <div class="form-group"><label>Time</label><input type="time" id="a-time"></div>
+        <div class="form-group form-full"><label>Reason</label><input type="text" id="a-reason" placeholder="Reason for appointment"></div>
+        <div class="form-group form-full"><label>Notes</label><textarea id="a-notes" rows="2" placeholder="Additional notes"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('appt-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAppt()">Schedule</button>
+    </div>
+  </div>
+</div>
+
+<script src="/assets/js/app.js"></script>
+<script>
+  let allPatients = [];
+  if (!requireAuth(['clinician'])) throw new Error('auth');
+  initSidebar('dashboard');
+
+  function showSection(name) {
+    ['dashboard','patients','records','appointments','patient-detail'].forEach(s => {
+      document.getElementById(`sec-${s}`).style.display = s === name ? 'block' : 'none';
+    });
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.page === name));
+    const titles = {
+      dashboard: ['Dashboard','Your clinical overview'],
+      patients: ['Patients','Patient registry'],
+      records: ['Medical Records','Records you have created'],
+      appointments: ['Appointments','Your scheduled appointments'],
+      'patient-detail': ['Patient Detail','Full patient health record']
+    };
+    if (titles[name]) {
+      document.getElementById('section-title').textContent = titles[name][0];
+      document.getElementById('section-subtitle').textContent = titles[name][1];
+    }
+    if (name === 'patients') loadPatients();
+    if (name === 'records') loadRecords();
+    if (name === 'appointments') loadAppointments();
+  }
+
+  async function loadDashboard() {
+    const res = await api.get('/clinician/dashboard');
+    if (!res || !res.ok) return;
+    const d = res.data.data;
+    document.getElementById('clin-stats').innerHTML = `
+      <div class="stat-card"><div class="stat-icon blue">👤</div><div class="stat-info"><div class="value">${d.my_patients}</div><div class="label">My Patients</div></div></div>
+      <div class="stat-card"><div class="stat-icon yellow">📅</div><div class="stat-info"><div class="value">${d.my_appointments}</div><div class="label">Upcoming Appointments</div></div></div>
+      <div class="stat-card"><div class="stat-icon green">📋</div><div class="stat-info"><div class="value">${d.records_created}</div><div class="label">Records Created</div></div></div>
+    `;
+    document.getElementById('recent-patients').innerHTML = d.recent_patients.length ?
+      d.recent_patients.map(p => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--gray-100);cursor:pointer;" onclick="viewPatient(${p.id})">
+          <div>
+            <div style="font-weight:600;font-size:13px;">${p.name}</div>
+            <div style="font-size:12px;color:var(--gray-500);">${p.diagnosis||'No diagnosis'} · ${formatDate(p.visit_date)}</div>
+          </div>
+          <span style="color:var(--primary);font-size:12px;">View →</span>
+        </div>`).join('') : emptyState('👤','No patients yet','');
+
+    document.getElementById('upcoming-appts').innerHTML = d.upcoming_appointments.length ?
+      d.upcoming_appointments.map(a => `
+        <div style="padding:10px 0;border-bottom:1px solid var(--gray-100);">
+          <div style="font-weight:600;font-size:13px;">${a.patient_name}</div>
+          <div style="font-size:12px;color:var(--gray-500);">${formatDate(a.appointment_date)} at ${a.appointment_time}</div>
+          <div style="font-size:12px;color:var(--gray-600);margin-top:2px;">${a.reason||'No reason specified'}</div>
+        </div>`).join('') : emptyState('📅','No upcoming appointments','');
+  }
+
+  async function loadPatients() {
+    document.getElementById('patients-table-body').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;">Loading...</td></tr>';
+    const res = await api.get('/clinician/patients');
+    if (!res || !res.ok) return;
+    allPatients = res.data.data;
+    renderPatients(allPatients);
+    populatePatientSelects();
+  }
+
+  function renderPatients(patients) {
+    document.getElementById('patients-table-body').innerHTML = patients.length ?
+      patients.map(p => `<tr>
+        <td><strong>${p.name}</strong></td>
+        <td>${p.email}</td>
+        <td>${p.date_of_birth ? formatDate(p.date_of_birth) : '—'}</td>
+        <td>${p.gender||'—'}</td>
+        <td><span class="badge badge-info">${p.blood_group||'—'}</span></td>
+        <td>${p.phone||'—'}</td>
+        <td>${p.allergies||'None'}</td>
+        <td><button class="btn btn-primary btn-sm" onclick="viewPatient(${p.id})">View</button></td>
+      </tr>`).join('') :
+      `<tr><td colspan="8">${emptyState('👤','No patients registered','')}</td></tr>`;
+  }
+
+  function filterPatients() {
+    const q = document.getElementById('patient-search').value.toLowerCase();
+    renderPatients(allPatients.filter(p => p.name.toLowerCase().includes(q) || p.email.toLowerCase().includes(q)));
+  }
+
+  function populatePatientSelects() {
+    const opts = allPatients.map(p => `<option value="${p.id}">${p.name} (${p.email})</option>`).join('');
+    document.getElementById('r-patient').innerHTML = '<option value="">Select patient...</option>' + opts;
+    document.getElementById('a-patient').innerHTML = '<option value="">Select patient...</option>' + opts;
+  }
+
+  async function viewPatient(patientId) {
+    showSection('patient-detail');
+    document.getElementById('section-title').textContent = 'Patient Detail';
+    document.getElementById('patient-detail-content').innerHTML = '<div class="page-loader"><div class="spinner"></div><p>Loading patient data...</p></div>';
+
+    const res = await api.get(`/clinician/patients/${patientId}`);
+    if (!res || !res.ok) { document.getElementById('patient-detail-content').innerHTML = '<div class="alert alert-error">Failed to load patient data.</div>'; return; }
+
+    const { patient: p, records, appointments } = res.data.data;
+    document.getElementById('patient-detail-content').innerHTML = `
+      <div class="card">
+        <div class="card-header">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div style="width:52px;height:52px;border-radius:50%;background:var(--secondary);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:18px;">${p.name.split(' ').map(n=>n[0]).join('').substring(0,2)}</div>
+            <div><h3>${p.name}</h3><p>${p.email}</p></div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openNewRecordForPatient(${p.id}, '${p.name}')">+ Add Record</button>
+        </div>
+        <div class="info-grid">
+          <div class="info-item"><label>Date of Birth</label><p>${p.date_of_birth ? formatDate(p.date_of_birth) : '—'}</p></div>
+          <div class="info-item"><label>Gender</label><p>${p.gender||'—'}</p></div>
+          <div class="info-item"><label>Blood Group</label><p>${p.blood_group||'—'}</p></div>
+          <div class="info-item"><label>Phone</label><p>${p.phone||'—'}</p></div>
+          <div class="info-item"><label>Address</label><p>${p.address||'—'}</p></div>
+          <div class="info-item"><label>Emergency Contact</label><p>${p.emergency_contact||'—'} ${p.emergency_phone ? '· '+p.emergency_phone : ''}</p></div>
+          <div class="info-item"><label>Insurance No.</label><p>${p.insurance_number||'—'}</p></div>
+          <div class="info-item"><label>Allergies</label><p style="color:${p.allergies&&p.allergies!=='None'?'var(--danger)':'inherit'}">${p.allergies||'None known'}</p></div>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab(this,'tab-records')">Medical Records (${records.length})</div>
+        <div class="tab" onclick="switchTab(this,'tab-appts')">Appointments (${appointments.length})</div>
+      </div>
+
+      <div id="tab-records">
+        ${records.length ? records.map(r => `
+          <div class="record-card">
+            <div class="record-header">
+              <div>
+                <strong>${r.diagnosis||'No diagnosis'}</strong>
+                <div class="record-date">Visit: ${formatDate(r.visit_date)} · By: ${r.clinician_name}</div>
+              </div>
+              <span class="badge badge-info">${formatDate(r.visit_date)}</span>
+            </div>
+            <div class="record-body">
+              ${r.chief_complaint ? `<div class="record-section"><div class="record-section-title">Chief Complaint</div><p>${r.chief_complaint}</p></div>` : ''}
+              ${r.vital_signs ? `<div class="record-section"><div class="record-section-title">Vital Signs</div><p>${r.vital_signs}</p></div>` : ''}
+              ${r.medications ? `<div class="record-section"><div class="record-section-title">Medications</div><p>${r.medications}</p></div>` : ''}
+              ${r.treatment_plan ? `<div class="record-section"><div class="record-section-title">Treatment Plan</div><p>${r.treatment_plan}</p></div>` : ''}
+              ${r.lab_results ? `<div class="record-section"><div class="record-section-title">Lab Results</div><p>${r.lab_results}</p></div>` : ''}
+              ${r.notes ? `<div class="record-section"><div class="record-section-title">Notes</div><p>${r.notes}</p></div>` : ''}
+            </div>
+          </div>`).join('') : emptyState('📋','No medical records','No records have been created for this patient yet.')}
+      </div>
+
+      <div id="tab-appts" style="display:none;">
+        ${appointments.length ? `
+          <div class="table-container"><table>
+            <thead><tr><th>Date</th><th>Time</th><th>Clinician</th><th>Reason</th><th>Status</th></tr></thead>
+            <tbody>${appointments.map(a => `<tr>
+              <td>${formatDate(a.appointment_date)}</td>
+              <td>${a.appointment_time}</td>
+              <td>${a.clinician_name}</td>
+              <td>${a.reason||'—'}</td>
+              <td>${statusBadge(a.status)}</td>
+            </tr>`).join('')}</tbody>
+          </table></div>` : emptyState('📅','No appointments','No appointments recorded for this patient.')}
+      </div>
+    `;
+  }
+
+  function switchTab(el, tabId) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    ['tab-records','tab-appts'].forEach(id => {
+      const el2 = document.getElementById(id);
+      if (el2) el2.style.display = id === tabId ? 'block' : 'none';
+    });
+  }
+
+  async function loadRecords() {
+    document.getElementById('records-list').innerHTML = '<div class="page-loader"><div class="spinner"></div></div>';
+    const res = await api.get('/clinician/records');
+    if (!res || !res.ok) return;
+    const records = res.data.data;
+    document.getElementById('records-list').innerHTML = records.length ?
+      records.map(r => `
+        <div class="record-card">
+          <div class="record-header">
+            <div>
+              <strong>${r.patient_name}</strong>
+              <div class="record-date">${formatDate(r.visit_date)} · ${r.diagnosis||'No diagnosis'}</div>
+            </div>
+            <span class="badge badge-info">${formatDate(r.visit_date)}</span>
+          </div>
+          <div class="info-grid" style="margin-top:10px;">
+            ${r.chief_complaint ? `<div class="info-item"><label>Complaint</label><p>${r.chief_complaint}</p></div>` : ''}
+            ${r.vital_signs ? `<div class="info-item"><label>Vitals</label><p>${r.vital_signs}</p></div>` : ''}
+            ${r.medications ? `<div class="info-item"><label>Medications</label><p>${r.medications}</p></div>` : ''}
+            ${r.treatment_plan ? `<div class="info-item"><label>Treatment</label><p>${r.treatment_plan}</p></div>` : ''}
+          </div>
+        </div>`).join('') : emptyState('📋','No records','You have not created any records yet.');
+  }
+
+  async function loadAppointments() {
+    document.getElementById('appts-table-body').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;">Loading...</td></tr>';
+    const res = await api.get('/clinician/appointments');
+    if (!res || !res.ok) return;
+    const apts = res.data.data;
+    document.getElementById('appts-table-body').innerHTML = apts.length ?
+      apts.map(a => `<tr>
+        <td><strong>${a.patient_name}</strong><br><span style="font-size:11px;color:var(--gray-500);">${a.patient_email}</span></td>
+        <td>${formatDate(a.appointment_date)}</td>
+        <td>${a.appointment_time}</td>
+        <td>${a.reason||'—'}</td>
+        <td>${statusBadge(a.status)}</td>
+        <td>
+          ${a.status==='scheduled' ? `
+            <button class="btn btn-success btn-sm" onclick="updateApptStatus(${a.id},'completed')">Complete</button>
+            <button class="btn btn-danger btn-sm" onclick="updateApptStatus(${a.id},'cancelled')">Cancel</button>
+          ` : '—'}
+        </td>
+      </tr>`).join('') :
+      `<tr><td colspan="6">${emptyState('📅','No appointments','')}</td></tr>`;
+  }
+
+  function openNewRecordModal() {
+    if (!allPatients.length) { loadPatients().then(() => openNewRecordModal()); return; }
+    ['r-patient','r-date','r-complaint','r-diagnosis','r-vitals','r-medications','r-treatment','r-labs','r-notes'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    document.getElementById('r-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('record-form-alert').style.display = 'none';
+    openModal('record-modal');
+  }
+
+  function openNewRecordForPatient(patientId, patientName) {
+    openNewRecordModal();
+    document.getElementById('r-patient').value = patientId;
+  }
+
+  async function saveRecord() {
+    const alertDiv = document.getElementById('record-form-alert');
+    const patient_id = document.getElementById('r-patient').value;
+    const visit_date = document.getElementById('r-date').value;
+    const diagnosis = document.getElementById('r-diagnosis').value.trim();
+
+    if (!patient_id || !visit_date || !diagnosis) {
+      alertDiv.className = 'alert alert-error';
+      alertDiv.textContent = 'Patient, visit date and diagnosis are required.';
+      alertDiv.style.display = 'flex';
+      return;
+    }
+
+    const res = await api.post('/clinician/records', {
+      patient_id, visit_date,
+      chief_complaint: document.getElementById('r-complaint').value,
+      diagnosis,
+      vital_signs: document.getElementById('r-vitals').value,
+      medications: document.getElementById('r-medications').value,
+      treatment_plan: document.getElementById('r-treatment').value,
+      lab_results: document.getElementById('r-labs').value,
+      notes: document.getElementById('r-notes').value
+    });
+
+    if (res && res.ok) {
+      closeModal('record-modal');
+      showToast('Medical record saved successfully.', 'success');
+      loadRecords();
+    } else {
+      alertDiv.className = 'alert alert-error';
+      alertDiv.textContent = res?.data?.message || 'Failed to save record.';
+      alertDiv.style.display = 'flex';
+    }
+  }
+
+  function openApptModal() {
+    if (!allPatients.length) { loadPatients().then(() => openApptModal()); return; }
+    ['a-patient','a-date','a-time','a-reason','a-notes'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    document.getElementById('appt-form-alert').style.display = 'none';
+    openModal('appt-modal');
+  }
+
+  async function saveAppt() {
+    const alertDiv = document.getElementById('appt-form-alert');
+    const patient_id = document.getElementById('a-patient').value;
+    const appointment_date = document.getElementById('a-date').value;
+    const appointment_time = document.getElementById('a-time').value;
+
+    if (!patient_id || !appointment_date || !appointment_time) {
+      alertDiv.className = 'alert alert-error';
+      alertDiv.textContent = 'Patient, date and time are required.';
+      alertDiv.style.display = 'flex';
+      return;
+    }
+
+    const res = await api.post('/clinician/appointments', {
+      patient_id, appointment_date, appointment_time,
+      reason: document.getElementById('a-reason').value,
+      notes: document.getElementById('a-notes').value
+    });
+
+    if (res && res.ok) {
+      closeModal('appt-modal');
+      showToast('Appointment scheduled.', 'success');
+      loadAppointments();
+    } else {
+      alertDiv.className = 'alert alert-error';
+      alertDiv.textContent = res?.data?.message || 'Failed to schedule.';
+      alertDiv.style.display = 'flex';
+    }
+  }
+
+  async function updateApptStatus(id, status) {
+    const res = await api.put(`/clinician/appointments/${id}/status`, { status });
+    if (res && res.ok) { showToast(`Appointment marked as ${status}.`, 'success'); loadAppointments(); }
+    else showToast('Failed to update status.', 'error');
+  }
+
+  loadDashboard();
+  loadPatients();
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+backend/node_modules/
+backend/.env
+backend/ehr.db
+backend/ehr.db-shm
+backend/ehr.db-wal
+tmp-render-test/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: ehr-system
+    runtime: node
+    plan: starter
+    buildCommand: cd backend && npm ci
+    startCommand: cd backend && npm run render:start
+    healthCheckPath: /api/health
+    disk:
+      name: ehr-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+      - key: DATABASE_PATH
+        value: /var/data/ehr.db
+      - key: JWT_SECRET
+        generateValue: true

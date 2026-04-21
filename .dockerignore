@@ -1,0 +1,11 @@
+.git
+.gitignore
+README.md
+appendix
+scripts
+tmp-render-test
+backend/node_modules
+backend/ehr.db
+backend/ehr.db-shm
+backend/ehr.db-wal
+backend/.env

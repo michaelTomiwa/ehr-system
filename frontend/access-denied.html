@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Access Denied — EHR System</title>
+  <link rel="stylesheet" href="/assets/css/style.css">
+</head>
+<body>
+  <div class="access-denied-page">
+    <div class="icon">🚫</div>
+    <h1>Access Denied</h1>
+    <p>You do not have the required permissions to access this resource. This access attempt has been logged.</p>
+    <br>
+    <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:16px;">
+      <button class="btn btn-primary" onclick="history.back()">← Go Back</button>
+      <button class="btn btn-secondary" onclick="goToDashboard()">My Dashboard</button>
+      <button class="btn btn-outline" onclick="logout()">Logout</button>
+    </div>
+    <div class="card" style="margin-top:28px; max-width:380px; text-align:left;">
+      <div class="card-header"><h3>Why was I denied?</h3></div>
+      <div style="font-size:13px; color:var(--gray-700);">
+        <p>The EHR system uses <strong>Role-Based Access Control (RBAC)</strong> to ensure each user can only access data and functions appropriate to their role.</p>
+        <br>
+        <p id="user-info">Please contact your administrator if you believe this is an error.</p>
+      </div>
+    </div>
+  </div>
+
+<script src="/assets/js/app.js"></script>
+<script>
+  const user = getUser();
+  if (user) {
+    document.getElementById('user-info').innerHTML = `Your current role is <strong>${user.role}</strong>. If you need access to additional resources, contact your system administrator.`;
+  }
+  function goToDashboard() {
+    if (!user) { window.location.href = '/'; return; }
+    window.location.href = `/pages/${user.role}/dashboard.html`;
+  }
+</script>
+</body>
+</html>
